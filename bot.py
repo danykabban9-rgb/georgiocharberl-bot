@@ -1,58 +1,45 @@
-import yfinance as yf
-import pandas as pd
-import numpy as np
-from telegram.ext import Updater, CommandHandler
+import os
+import logging
+import requests
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
-# --- Handlers ---
+# Set up logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
+# Example start command
 def start(update, context):
-    update.message.reply_text("Bot is alive and ready! Use /signal, /stats, or /backtest.")
+    update.message.reply_text("Hello! Your trading bot is running.")
 
-def signal(update, context):
-    # Fetch gold price (XAUUSD 5m candles)
-    data = yf.download("XAUUSD=X", period="1d", interval="5m")
-    last_close = data["Close"].iloc[-1]
+# Example help command
+def help_command(update, context):
+    update.message.reply_text("Use /start to test the bot. More commands coming soon.")
 
-    # Example trading logic (simple moving average)
-    sma_short = data["Close"].rolling(window=5).mean().iloc[-1]
-    sma_long = data["Close"].rolling(window=20).mean().iloc[-1]
+# Example echo handler
+def echo(update, context):
+    update.message.reply_text(update.message.text)
 
-    if sma_short > sma_long:
-        entry = last_close
-        sl = entry - 2
-        tp = entry + 4
-        msg = f"📈 BUY Signal\nEntry: {entry:.2f}\nSL: {sl:.2f}\nTP: {tp:.2f}\nSuccess %: 70%"
-    else:
-        entry = last_close
-        sl = entry + 2
-        tp = entry - 4
-        msg = f"📉 SELL Signal\nEntry: {entry:.2f}\nSL: {sl:.2f}\nTP: {tp:.2f}\nSuccess %: 65%"
-
-    update.message.reply_text(msg)
-
-def stats(update, context):
-    msg = "📊 Bot Stats\nWin Rate: 68%\nSignals Sent: 120\nBest Pair: XAUUSD"
-    update.message.reply_text(msg)
-
-def backtest(update, context):
-    data = yf.download("XAUUSD=X", period="5d", interval="5m")
-    returns = data["Close"].pct_change().dropna()
-    avg_return = returns.mean() * 100
-    msg = f"🔎 Backtest (5d)\nAverage Return per Candle: {avg_return:.4f}%"
-    update.message.reply_text(msg)
-
-# --- Main ---
 def main():
-    updater = Updater("YOUR_TELEGRAM_BOT_TOKEN", use_context=True)
+    # Get token from environment variable
+    token = os.getenv("TELEGRAM_TOKEN")
+    if not token:
+        logger.error("TELEGRAM_TOKEN not set in environment variables")
+        return
+
+    updater = Updater(token, use_context=True)
     dp = updater.dispatcher
 
+    # Register handlers
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("signal", signal))
-    dp.add_handler(CommandHandler("stats", stats))
-    dp.add_handler(CommandHandler("backtest", backtest))
+    dp.add_handler(CommandHandler("help", help_command))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
 
+    # Start the bot
     updater.start_polling()
     updater.idle()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
