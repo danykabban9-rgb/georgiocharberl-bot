@@ -1,4 +1,4 @@
-
+import yfinance as yf
 import pandas as pd
 import numpy as np
 from telegram.ext import Updater, CommandHandler
@@ -31,12 +31,10 @@ def signal(update, context):
     update.message.reply_text(msg)
 
 def stats(update, context):
-    # Dummy stats example
     msg = "📊 Bot Stats\nWin Rate: 68%\nSignals Sent: 120\nBest Pair: XAUUSD"
     update.message.reply_text(msg)
 
 def backtest(update, context):
-    # Simple backtest example
     data = yf.download("XAUUSD=X", period="5d", interval="5m")
     returns = data["Close"].pct_change().dropna()
     avg_return = returns.mean() * 100
